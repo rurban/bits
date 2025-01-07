@@ -143,15 +143,16 @@ struct bit_vector  //
         }
 
         uint64_t num_bits() const { return m_num_bits; }
-        std::vector<uint64_t> const& data() const { return m_data; }
+        VECTOR(uint64_t) const& data() const { return m_data; }
 
     private:
         uint64_t m_num_bits;
         uint64_t* m_cur_word;
-        std::vector<uint64_t> m_data;
+        VECTOR(uint64_t) m_data;
     };
 
     bit_vector() : m_num_bits(0) {}
+    bit_vector(uint64_t num_bits, VECTOR(uint64_t) data) : m_num_bits(num_bits), m_data(data) {}
 
     uint64_t get(uint64_t pos) const {
         assert(pos < num_bits());
@@ -306,7 +307,7 @@ struct bit_vector  //
     iterator begin() const { return get_iterator_at(0); }
 
     uint64_t num_bits() const { return m_num_bits; }
-    std::vector<uint64_t> const& data() const { return m_data; }
+    VECTOR(uint64_t) const& data() const { return m_data; }
 
     uint64_t num_bytes() const { return sizeof(m_num_bits) + essentials::vec_bytes(m_data); }
 
@@ -325,14 +326,32 @@ struct bit_vector  //
         visit_impl(visitor, *this);
     }
 
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) const {
+        visit_impl(name, visitor, *this);
+    }
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) {
+        visit_impl(name, visitor, *this);
+    }
+
 protected:
     uint64_t m_num_bits;
-    std::vector<uint64_t> m_data;
+    VECTOR(uint64_t) m_data;
 
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.m_num_bits);
         visitor.visit(t.m_data);
+    }
+
+    template <typename Visitor, typename T>
+    static void visit_impl(const std::string, Visitor& visitor, T&& t) {
+        visitor.dump("bits::bit_vector(");
+        visitor.visit("m_num_bits", t.m_num_bits);
+        visitor.dump(", ");
+        visitor.visit("m_data", t.m_data);
+        visitor.dump(")");
     }
 };
 

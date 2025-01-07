@@ -16,6 +16,13 @@ template <  //
     >
 struct elias_fano {
     elias_fano() : m_back(0) {}
+    elias_fano(uint64_t back, bit_vector high_bits, darray1 high_bits_d1, darray0 high_bits_d0,
+               compact_vector low_bits)
+        : m_back(back)
+        , m_high_bits(high_bits)
+        , m_high_bits_d1(high_bits_d1)
+        , m_high_bits_d0(high_bits_d0)
+        , m_low_bits(low_bits) {}
 
     template <typename Iterator>
     void encode(Iterator begin, uint64_t n, uint64_t universe = uint64_t(-1)) {
@@ -290,12 +297,20 @@ struct elias_fano {
     void visit(Visitor& visitor) const {
         visit_impl(visitor, *this);
     }
-
     template <typename Visitor>
     void visit(Visitor& visitor) {
         visit_impl(visitor, *this);
     }
 
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) const {
+        visit_impl(name, visitor, *this);
+    }
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) {
+        visit_impl(name, visitor, *this);
+    }
+    
 private:
     uint64_t m_back;
     bit_vector m_high_bits;
@@ -310,6 +325,20 @@ private:
         visitor.visit(t.m_high_bits_d1);
         visitor.visit(t.m_high_bits_d0);
         visitor.visit(t.m_low_bits);
+    }
+    template <typename Visitor, typename T>
+    static void visit_impl(const std::string, Visitor& visitor, T&& t) {
+        visitor.dump("bits::elias_fano(");
+        visitor.visit("m_back", t.m_back);
+        visitor.dump(", ");
+        visitor.visit("m_high_bits", t.m_high_bits);
+        visitor.dump(",\n    ");
+        visitor.visit("m_high_bits_d1", t.m_high_bits_d1);
+        visitor.dump(",\n    ");
+        visitor.visit("m_high_bits_d0", t.m_high_bits_d0);
+        visitor.dump(",\n    ");
+        visitor.visit("m_low_bits", t.m_low_bits);
+        visitor.dump(")");
     }
 
     /*

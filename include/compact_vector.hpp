@@ -161,7 +161,7 @@ struct compact_vector  //
         uint64_t back() const { return m_back; }
         uint64_t size() const { return m_size; }
         uint64_t width() const { return m_width; }
-        std::vector<uint64_t> const& data() const { return m_data; }
+        VECTOR(uint64_t) const& data() const { return m_data; }
 
     private:
         uint64_t m_size;
@@ -170,10 +170,12 @@ struct compact_vector  //
         uint64_t m_back;
         uint64_t m_cur_block;
         int64_t m_cur_shift;
-        std::vector<uint64_t> m_data;
+        VECTOR(uint64_t) m_data;
     };
 
     compact_vector() : m_size(0), m_width(0), m_mask(0) {}
+    compact_vector(uint64_t size, uint64_t width, uint64_t mask, VECTOR(uint64_t) data)
+        : m_size(size), m_width(width), m_mask(mask), m_data(data) {}
 
     template <typename Iterator>
     void build(Iterator begin, uint64_t n) {
@@ -209,7 +211,7 @@ struct compact_vector  //
     uint64_t back() const { return operator[](size() - 1); }
     uint64_t size() const { return m_size; }
     uint64_t width() const { return m_width; }
-    std::vector<uint64_t> const& data() const { return m_data; }
+    VECTOR(uint64_t) const& data() const { return m_data; }
 
     typedef enumerator<compact_vector> iterator;
     iterator get_iterator_at(uint64_t pos) const { return iterator(this, pos); }
@@ -230,17 +232,25 @@ struct compact_vector  //
     void visit(Visitor& visitor) const {
         visit_impl(visitor, *this);
     }
-
     template <typename Visitor>
     void visit(Visitor& visitor) {
         visit_impl(visitor, *this);
+    }
+
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) const {
+        visit_impl(name, visitor, *this);
+    }
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) {
+        visit_impl(name, visitor, *this);
     }
 
 private:
     uint64_t m_size;
     uint64_t m_width;
     uint64_t m_mask;
-    std::vector<uint64_t> m_data;
+    VECTOR(uint64_t) m_data;
 
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
@@ -248,6 +258,18 @@ private:
         visitor.visit(t.m_width);
         visitor.visit(t.m_mask);
         visitor.visit(t.m_data);
+    }
+    template <typename Visitor, typename T>
+    static void visit_impl(const std::string, Visitor& visitor, T&& t) {
+        visitor.dump("\n      bits::compact_vector(");
+        visitor.visit("m_size", t.m_size);
+        visitor.dump(", ");
+        visitor.visit("m_width", t.m_width);
+        visitor.dump(", ");
+        visitor.visit("m_mask", t.m_mask);
+        visitor.dump(",\n    ");
+        visitor.visit("m_data", t.m_data);
+        visitor.dump(")");
     }
 };
 

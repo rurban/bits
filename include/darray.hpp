@@ -44,13 +44,21 @@ namespace bits {
 template <typename WordGetter>
 struct darray {
     darray() : m_positions(0) {}
+#ifdef PTHASH_STATIC
+    darray(size_t positions, VECTOR(int64_t) block_inventory, VECTOR(uint16_t) subblock_inventory,
+           VECTOR(uint64_t) overflow_positions)
+        : m_positions(positions)
+        , m_block_inventory(block_inventory)
+        , m_subblock_inventory(subblock_inventory)
+        , m_overflow_positions(overflow_positions) {};
+#endif
 
     void build(bit_vector const& B) {
-        std::vector<uint64_t> const& data = B.data();
-        std::vector<uint64_t> cur_block_positions;
-        std::vector<int64_t> block_inventory;
-        std::vector<uint16_t> subblock_inventory;
-        std::vector<uint64_t> overflow_positions;
+        VECTOR(uint64_t) const& data = B.data();
+        VECTOR(uint64_t) cur_block_positions;
+        VECTOR(int64_t) block_inventory;
+        VECTOR(uint16_t) subblock_inventory;
+        VECTOR(uint64_t) overflow_positions;
 
         for (uint64_t word_idx = 0; word_idx < data.size(); ++word_idx) {
             uint64_t cur_pos = word_idx << 6;
@@ -101,7 +109,7 @@ struct darray {
         uint64_t reminder = i & (subblock_size - 1);
         if (!reminder) return start_pos;
 
-        std::vector<uint64_t> const& data = B.data();
+        VECTOR(uint64_t) const& data = B.data();
         uint64_t word_idx = start_pos >> 6;
         uint64_t word_shift = start_pos & 63;
         uint64_t word = WordGetter()(data, word_idx) & (uint64_t(-1) << word_shift);
@@ -133,10 +141,18 @@ struct darray {
     void visit(Visitor& visitor) const {
         visit_impl(visitor, *this);
     }
-
     template <typename Visitor>
     void visit(Visitor& visitor) {
         visit_impl(visitor, *this);
+    }
+
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) const {
+        visit_impl(name, visitor, *this);
+    }
+    template <typename Visitor>
+    void visit(const std::string name, Visitor& visitor) {
+        visit_impl(name, visitor, *this);
     }
 
 protected:
@@ -144,9 +160,9 @@ protected:
     static const uint64_t subblock_size = 32;
 
     uint64_t m_positions;
-    std::vector<int64_t> m_block_inventory;
-    std::vector<uint16_t> m_subblock_inventory;
-    std::vector<uint64_t> m_overflow_positions;
+    VECTOR(int64_t) m_block_inventory;
+    VECTOR(uint16_t) m_subblock_inventory;
+    VECTOR(uint64_t) m_overflow_positions;
 
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
@@ -156,10 +172,31 @@ protected:
         visitor.visit(t.m_overflow_positions);
     }
 
-    static void flush_cur_block(std::vector<uint64_t>& cur_block_positions,
-                                std::vector<int64_t>& block_inventory,
-                                std::vector<uint16_t>& subblock_inventory,
-                                std::vector<uint64_t>& overflow_positions) {
+    template <typename Visitor, typename T>
+    void visit_impl(const std::string, Visitor& visitor, T&& t) const {
+#if 1
+        const std::string ctor = essentials::demangle(typeid(t).name()) + "(";
+        visitor.dump(ctor);
+#else
+        if constexpr (WordGetter == util::identity_getter)
+            visitor.dump("bits::darray1(");
+        else
+            visitor.dump("bits::darray0(");
+#endif
+        visitor.visit("m_positions", m_positions);
+        visitor.dump(",\n  ");
+        visitor.visit("m_block_inventory", m_block_inventory);
+        visitor.dump(",\n  ");
+        visitor.visit("m_subblock_inventory", m_subblock_inventory);
+        visitor.dump(",\n  ");
+        visitor.visit("m_overflow_positions", m_overflow_positions);
+        visitor.dump(")");
+    }
+
+    static void flush_cur_block(VECTOR(uint64_t)& cur_block_positions,
+                                VECTOR(int64_t)& block_inventory,
+                                VECTOR(uint16_t)& subblock_inventory,
+                                VECTOR(uint64_t)& overflow_positions) {
         if (cur_block_positions.back() - cur_block_positions.front() < (1ULL << 16))  // dense case
         {
             block_inventory.push_back(int64_t(cur_block_positions.front()));
@@ -184,11 +221,11 @@ protected:
 namespace util {
 
 struct identity_getter {
-    uint64_t operator()(std::vector<uint64_t> const& data, uint64_t i) const { return data[i]; }
+    uint64_t operator()(VECTOR(uint64_t) const& data, uint64_t i) const { return data[i]; }
 };
 
 struct negating_getter {
-    uint64_t operator()(std::vector<uint64_t> const& data, uint64_t i) const { return ~data[i]; }
+    uint64_t operator()(VECTOR(uint64_t) const& data, uint64_t i) const { return ~data[i]; }
 };
 
 }  // namespace util

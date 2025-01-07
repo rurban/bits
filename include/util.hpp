@@ -7,6 +7,10 @@
 #include <immintrin.h>
 #endif
 
+#ifndef VECTOR
+#define VECTOR(T) std::vector<T>
+#endif
+
 namespace bits::util {
 
 /*

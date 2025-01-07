@@ -1,6 +1,7 @@
 [submodule "external/essentials"]
 	path = external/essentials
-	url = https://github.com/jermp/essentials.git
+	url = https://github.com/rurban/essentials.git
+        branch = named-visit
 [submodule "external/doctest"]
 	path = external/doctest
 	url = https://github.com/doctest/doctest.git

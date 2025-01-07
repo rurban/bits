@@ -44,6 +44,7 @@ namespace bits {
 
 struct rank9 {
     rank9() {}
+    rank9(VECTOR(uint64_t) block_rank_pairs) : m_block_rank_pairs(block_rank_pairs) {}
 
     void build(bit_vector const& B) {
         std::vector<uint64_t> const& data = B.data();
@@ -115,19 +116,29 @@ struct rank9 {
     void swap(rank9& other) { m_block_rank_pairs.swap(other.m_block_rank_pairs); }
 
     template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visit_impl(visitor, *this);
+    }
+    template <typename Visitor>
     void visit(Visitor& visitor) {
         visit_impl(visitor, *this);
     }
 
     template <typename Visitor>
-    void visit(Visitor& visitor) const {
-        visit_impl(visitor, *this);
+    void visit(const std::string name, Visitor& visitor) const {
+        visit_impl(name, visitor, *this);
     }
 
 private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.m_block_rank_pairs);
+    }
+    template <typename Visitor, typename T>
+    static void visit_impl(const std::string, Visitor& visitor, T&& t) {
+        visitor.dump("bits::rank9(");
+        visitor.visit("m_block_rank_pairs", t.m_block_rank_pairs);
+        visitor.dump(")");
     }
 
     inline uint64_t block_rank(uint64_t block) const { return m_block_rank_pairs[block * 2]; }
@@ -146,7 +157,7 @@ private:
     }
 
     static const uint64_t block_size = 8;  // in 64bit words
-    std::vector<uint64_t> m_block_rank_pairs;
+    VECTOR(uint64_t) m_block_rank_pairs;
 };
 
 }  // namespace bits
